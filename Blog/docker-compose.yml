@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+# ---------------------------------------------------------------------------- #
+#                                 PHP                                          #
+# ---------------------------------------------------------------------------- #
+    blog-nginx-unit-php:
+        container_name: 'blog-nginx-unit-php'
+        image: 'dev-build/blog-nginx-unit-php'
+        build:
+            context: './'
+            dockerfile: Dockerfile.dev
+        volumes:
+            - './.docker/nginx-unit-php/php.ini:/usr/local/etc/php/php.ini'
+            - './.docker/nginx-unit-php/docker-entrypoint.d:/docker-entrypoint.d'
+            - './.docker/nginx-unit-php/supervisor/conf.d:/etc/supervisor/conf.d'
+            - './:/var/www/html'
+        restart: unless-stopped
+        networks:
+            blog_main_net:
+                ipv4_address: 172.16.239.2
+            bridge_net:
+                ipv4_address: 172.16.237.4
+# ---------------------------------------------------------------------------- #
+#                                 MySQL server                                 #
+# ---------------------------------------------------------------------------- #
+    blog-db:
+        container_name: 'blog-db'
+        image: 'mariadb:10.5-focal'
+        volumes:
+            - './.docker/db/data:/var/lib/mysql'
+            - './.docker/db/share:/var/www/html'
+            - './.docker/db/my.cnf:/etc/mysql/my.cnf'
+            - './.docker/db/mariadb.cnf:/etc/mysql/mariadb.cnf'
+            - './.docker/db/mariadb.conf.d:/etc/mysql/mariadb.conf.d'
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: 'root'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+            MYSQL_DATABASE: 'blog'
+        networks:
+            blog_main_net:
+                ipv4_address: 172.16.239.3
+# ---------------------------------------------------------------------------- #
+#                                 RabbitMQ                                     #
+# ---------------------------------------------------------------------------- #
+    blog-rabbitmq:
+        container_name: 'blog-rabbitmq'
+        image: 'rabbitmq:latest'
+        restart: unless-stopped
+        environment:
+            - RABBITMQ_DEFAULT_USER=root
+            - RABBITMQ_DEFAULT_PASS=root
+        networks:
+            blog_main_net:
+                ipv4_address: 172.16.239.4
+            bridge_net:
+                ipv4_address: 172.16.237.5
+networks:
+    blog_main_net:
+        ipam:
+            driver: default
+            config:
+                - subnet: '172.16.239.0/24'
+    bridge_net:
+        external:
+            name: bridge_net

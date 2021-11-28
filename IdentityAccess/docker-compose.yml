@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+# ---------------------------------------------------------------------------- #
+#                                 PHP                                          #
+# ---------------------------------------------------------------------------- #
+    identity-access-nginx-unit-php:
+        container_name: 'identity-access-nginx-unit-php'
+        image: 'dev-build/identity-access-nginx-unit-php'
+        build:
+            context: './'
+            dockerfile: Dockerfile.dev
+        volumes:
+            - './.docker/nginx-unit-php/php.ini:/usr/local/etc/php/php.ini'
+            - './.docker/nginx-unit-php/docker-entrypoint.d:/docker-entrypoint.d'
+            - './.docker/nginx-unit-php/supervisor/conf.d:/etc/supervisor/conf.d'
+            - './:/var/www/html'
+        restart: unless-stopped
+        networks:
+            identity-access_main_net:
+                ipv4_address: 172.16.238.2
+            bridge_net:
+                ipv4_address: 172.16.237.2
+# ---------------------------------------------------------------------------- #
+#                                 MySQL server                                 #
+# ---------------------------------------------------------------------------- #
+    identity-access-db:
+        container_name: 'identity-access-db'
+        image: 'mariadb:10.5-focal'
+        volumes:
+            - './.docker/db/data:/var/lib/mysql'
+            - './.docker/db/share:/var/www/html'
+            - './.docker/db/my.cnf:/etc/mysql/my.cnf'
+            - './.docker/db/mariadb.cnf:/etc/mysql/mariadb.cnf'
+            - './.docker/db/mariadb.conf.d:/etc/mysql/mariadb.conf.d'
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: 'root'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+            MYSQL_DATABASE: 'identity-access'
+        networks:
+            identity-access_main_net:
+                ipv4_address: 172.16.238.3
+# ---------------------------------------------------------------------------- #
+#                                 RabbitMQ                                     #
+# ---------------------------------------------------------------------------- #
+    identity-access-rabbitmq:
+        container_name: 'identity-access-rabbitmq'
+        image: 'rabbitmq:latest'
+        restart: unless-stopped
+        environment:
+            - RABBITMQ_DEFAULT_USER=root
+            - RABBITMQ_DEFAULT_PASS=root
+        networks:
+            identity-access_main_net:
+                ipv4_address: 172.16.238.4
+            bridge_net:
+                ipv4_address: 172.16.237.3
+networks:
+    identity-access_main_net:
+        ipam:
+            driver: default
+            config:
+                - subnet: '172.16.238.0/24'
+    bridge_net:
+        name: bridge_net
+        ipam:
+            driver: default
+            config:
+                - subnet: '172.16.237.0/24'

@@ -1,0 +1,103 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+
+    # Bus
+    App\Common\Infrastructure\Bus\Symfony\Query\SymfonyQueryBus:
+        class: App\Common\Infrastructure\Bus\Symfony\Query\SymfonyQueryBus
+        arguments:
+            $messageBus: '@query.bus'
+    App\Common\Bus\Symfony\Query\QueryBus: '@App\Common\Infrastructure\Bus\Symfony\Query\SymfonyQueryBus'
+
+    App\Common\Infrastructure\Bus\Symfony\Command\SymfonyCommandBus:
+        class: App\Common\Infrastructure\Bus\Symfony\Command\SymfonyCommandBus
+        arguments:
+            $bus: '@command.bus'
+    App\Common\Bus\Symfony\Command\CommandBus: '@App\Common\Infrastructure\Bus\Symfony\Command\SymfonyCommandBus'
+
+    # Repository
+    App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineBlogRepository:
+        class: App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineBlogRepository
+        arguments:
+            $entityClass: 'App\Blog\Domain\Blog'
+    App\Blog\Domain\BlogRepository: '@App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineBlogRepository'
+
+    App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineCategoryRepository:
+        class: App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineCategoryRepository
+        arguments:
+            $entityClass: 'App\Blog\Domain\Category'
+    App\Blog\Domain\CategoryRepository: '@App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineCategoryRepository'
+
+    App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineAuthorRepository:
+        class: App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineAuthorRepository
+        arguments:
+            $entityClass: 'App\Blog\Domain\Author'
+    App\Blog\Domain\AuthorRepository: '@App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineAuthorRepository'
+
+    # Application
+    App\Blog\Application\Command\WriteBlogHandler:
+        class: App\Blog\Application\Command\WriteBlogHandler
+        arguments:
+            $blogRepository: '@App\Blog\Domain\BlogRepository'
+            $categoryRepository: '@App\Blog\Domain\CategoryRepository'
+            $authorRepository: '@App\Blog\Domain\AuthorRepository'
+
+    App\Blog\Application\Command\CreateCategoryHandler:
+        class: App\Blog\Application\Command\CreateCategoryHandler
+        arguments:
+            $categoryRepository: '@App\Blog\Domain\CategoryRepository'
+
+    App\Blog\Application\Command\CreateAuthorHandler:
+        class: App\Blog\Application\Command\CreateAuthorHandler
+        arguments:
+            $authorRepository: '@App\Blog\Domain\AuthorRepository'
+
+    App\Blog\Application\Transformer\AuthorTransformer:
+        class: App\Blog\Application\Transformer\AuthorTransformer
+
+    App\Blog\Application\Query\AuthorCollectionQueryHandler:
+        class: App\Blog\Application\Query\AuthorCollectionQueryHandler
+        arguments:
+            $authorRepository: '@App\Blog\Domain\AuthorRepository'
+            $authorTransformer: '@App\Blog\Application\Transformer\AuthorTransformer'
+
+    # Symfony Command
+    App\Blog\Infrastructure\Ui\Command\WriteBlogCommand:
+        class: App\Blog\Infrastructure\Ui\Command\WriteBlogCommand
+        arguments:
+            $commandBus: '@App\Common\Bus\Symfony\Command\CommandBus'
+        tags: [ 'console.command' ]
+
+    App\Blog\Infrastructure\Ui\Command\CreateCategoryCommand:
+        class: App\Blog\Infrastructure\Ui\Command\CreateCategoryCommand
+        arguments:
+            $commandBus: '@App\Common\Bus\Symfony\Command\CommandBus'
+        tags: [ 'console.command' ]
+
+    App\Blog\Infrastructure\Ui\Command\GetAllAuthorsCommand:
+        class: App\Blog\Infrastructure\Ui\Command\GetAllAuthorsCommand
+        arguments:
+            $queryBus: '@App\Common\Bus\Symfony\Query\QueryBus'
+        tags: [ 'console.command' ]
+
+    # Messaging
+    App\Blog\Infrastructure\Messaging\OnUserRegisteredHandler:
+        class: App\Blog\Infrastructure\Messaging\OnUserRegisteredHandler
+        arguments:
+            $commandBus:  '@App\Common\Bus\Symfony\Command\CommandBus'
+        tags: [ 'messenger.message_handler' ]
+
+    App\Blog\Infrastructure\Messaging\MessageSerializer:
+        class: App\Blog\Infrastructure\Messaging\MessageSerializer

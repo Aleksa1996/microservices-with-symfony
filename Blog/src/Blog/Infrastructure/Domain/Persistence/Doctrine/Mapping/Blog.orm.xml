@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="https://doctrine-project.org/schemas/orm/doctrine-mapping" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <entity name="App\Blog\Domain\Blog" table="blogs" repository-class="App\Blog\Infrastructure\Domain\Persistence\Doctrine\DoctrineBlogRepository">
+        <id name="id" column="id" type="uuid">
+            <generator strategy="NONE"/>
+        </id>
+
+        <field name="title" column="title" type="string" lengh="255"/>
+        <field name="content" column="content" type="text"/>
+        <field name="slug" column="slug" type="string" lengh="255"/>
+
+        <many-to-one field="category" target-entity="App\Blog\Domain\Category">
+            <join-column name="category_id" referenced-column-name="id"/>
+        </many-to-one>
+        <many-to-one field="author" target-entity="App\Blog\Domain\Author">
+            <join-column name="author_id" referenced-column-name="id"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>
